@@ -1,5 +1,7 @@
 from selenium import webdriver
 from six.moves import urllib
+from multiprocessing import Pool
+import tqdm
 import time
 import json
 import sys
@@ -14,11 +16,11 @@ search_words = ['hotdog', 'not hotdog']
 num_images = [20, 30]
 start_idx = [0, 0]
 
-def write_img_file(file_name, img_url, img_type):
-  req = urllib.request.Request(img_url)
+def write_img_file(img_item):
+  req = urllib.request.Request(img_item[1])
   req.add_header('User-Agent', req_header)
   raw_img = urllib.request.urlopen(req).read()
-  f = open(file_name, "wb")
+  f = open(img_item[0], "wb")
   f.write(raw_img)
   f.close()
 
@@ -26,30 +28,29 @@ def get_images(driver, folder_path, num):
     count = 0
     images = driver.find_elements_by_xpath('//div[contains(@class,"rg_meta")]')
     extensions = {"jpg", "jpeg", "png", "gif"}
+    img_list = []
 
     for img in images:
 
         if count > num:
           break
-        
+
         img_url = json.loads(img.get_attribute('innerHTML'))["ou"]
         img_type = json.loads(img.get_attribute('innerHTML'))["ity"]
 
         if img_type not in extensions:
           continue
 
-        # open each google image to access full size
         file_name = folder_path + "/" + str(count) + "." + img_type
-        write_img_file(file_name, img_url, img_type)
-        ratio = 100 * count / num
-        sys.stdout.write("progress: " + str(int(ratio)) + "%\r")
-        sys.stdout.flush()
-        sys.stdout.write("\r")
-        time.sleep(0.1)
-        
+        img_item = (file_name, img_url)
+        img_list.append(img_item)
         count += 1
-    
-    print("\n")
+
+    pool = Pool()
+    for _ in tqdm.tqdm(pool.imap_unordered(write_img_file, img_list), total=len(img_list)):
+        pass
+    pool.close()
+    pool.join()
 
 def scroll(driver, num_scrolls):
 
