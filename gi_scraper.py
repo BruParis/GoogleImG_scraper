@@ -1,6 +1,7 @@
 from selenium import webdriver
 from six.moves import urllib
-from multiprocessing import Pool
+import gevent
+from gevent import monkey
 import tqdm
 import time
 import json
@@ -9,21 +10,31 @@ import os
 
 # Config
 download_img_path = "img/"
-req_header = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.22 (KHTML, like Gecko) Ubuntu Chromium/25.0.1364.160 Chrome/25.0.1364.160 Safari/537.22"
+req_header = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
 
 # Images
 search_words = ['hotdog', 'not hotdog']
-num_images = [10, 30]
+num_images = [1000, 300]
 start_idx = [0, 0]
 
+# patches stdlib (including socket and ssl modules) to cooperate with other greenlets
+monkey.patch_all()
 
-def write_img_file(img_item):
+
+def write_img_file(pbar, img_item):
     req = urllib.request.Request(img_item[1])
     req.add_header('User-Agent', req_header)
-    raw_img = urllib.request.urlopen(req).read()
+    try:
+        raw_img = urllib.request.urlopen(req).read()
+    except:
+        pbar.update()
+        return
     f = open(img_item[0], "wb")
     f.write(raw_img)
     f.close()
+    pbar.update()
+    return
+
 
 def get_images(driver, folder_path, num):
     count = 0
@@ -45,16 +56,11 @@ def get_images(driver, folder_path, num):
         img_list.append((file_name, img_url))
         count += 1
 
-    pool = Pool()
     pbar = tqdm.tqdm(total=len(img_list))
-    def update(*a):
-        pbar.update()
-        # tqdm.write(str(a))
-
-    for i in range(pbar.total):
-        pool.apply_async(write_img_file, args=(img_list[i], ), callback=update)
-    pool.close()
-    pool.join()
+    tasks = [gevent.spawn(write_img_file, pbar, img_item)
+             for img_item in img_list]
+    gevent.joinall(tasks)
+    print("DONE\n")
 
 
 def scroll(driver, num_scrolls):
@@ -65,11 +71,11 @@ def scroll(driver, num_scrolls):
             driver.execute_script("window.scrollBy(0, 1000000)")
             time.sleep(0.2)
         # click "show more results"
-        time.sleep(2.5)
+        time.sleep(0.5)
         try:
             driver.find_element_by_xpath(
                 "//input[@value='Plus de résultats']") .click()
-            time.sleep(2.5)
+            time.sleep(0.5)
         except Exception as e:
             print("    show more results failed -> exception: " + str(e))
 
