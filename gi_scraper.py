@@ -1,7 +1,8 @@
 from selenium import webdriver
 from six.moves import urllib
-import gevent
 from gevent import monkey
+import gevent
+from PIL import Image
 import tqdm
 import time
 import json
@@ -25,20 +26,25 @@ def write_img_file(pbar, img_item):
     req = urllib.request.Request(img_item[1])
     req.add_header('User-Agent', req_header)
     try:
-        raw_img = urllib.request.urlopen(req).read()
+        # img_data = urllib.request.urlopen(req).read()
+        img_data = urllib.request.urlopen(req)
     except:
         pbar.update()
         return
 
     # Problem encountered : data downloaded not adequate
     # image with RIFF format, url returns html page <not available in your country>
-    not_adequate = ["RIFF", "html"]
-    if any(s in str(raw_img) for s in not_adequate):
-      return
+    # not_adequate = ["RIFF", "html"]
+    # if any(s in str(img_data) for s in not_adequate):
+    #   return
 
-    f = open(img_item[0], "wb")
-    f.write(raw_img)
-    f.close()
+    try:
+      img = Image.open(img_data)
+    except:
+        pbar.update()
+        return
+
+    img.save(img_item[0])
     pbar.update()
     return
 
