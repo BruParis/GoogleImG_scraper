@@ -29,6 +29,13 @@ def write_img_file(pbar, img_item):
     except:
         pbar.update()
         return
+
+    # Problem encountered : data downloaded not adequate
+    # image with RIFF format, url returns html page <not available in your country>
+    not_adequate = ["RIFF", "html"]
+    if any(s in str(raw_img) for s in not_adequate):
+      return
+
     f = open(img_item[0], "wb")
     f.write(raw_img)
     f.close()
