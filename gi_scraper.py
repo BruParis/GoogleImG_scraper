@@ -39,7 +39,7 @@ def write_img_file(pbar, img_item):
 def get_images(driver, folder_path, num):
     count = 0
     images = driver.find_elements_by_xpath('//div[contains(@class,"rg_meta")]')
-    extensions = {"jpg", "jpeg", "png", "gif"}
+    extensions = {"jpg", "jpeg", "png"}
     img_list = []
 
     for img in images:
