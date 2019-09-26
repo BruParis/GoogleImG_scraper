@@ -39,11 +39,13 @@ def write_img_file(pbar, img_item):
     #   return
 
     try:
-      img = Image.open(img_data)
+        img = Image.open(img_data)
     except:
         pbar.update()
         return
 
+    # Some image have alpha channel -> get rid of it to be save as JPEG
+    img = img.convert('RGB')
     img.save(img_item[0])
     pbar.update()
     return
