@@ -10,17 +10,15 @@ import sys
 import os
 
 # Config
-download_img_path = "img/"
+download_img_path = "test/"
 req_header = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36"
 
 # Images
-search_words = ['hotdog', 'not hotdog']
-num_images = [1000, 300]
-start_idx = [0, 0]
+search_words = ['hotdog', 'random picture']
+num_images = [200, 300]
 
 # patches stdlib (including socket and ssl modules) to cooperate with other greenlets
 monkey.patch_all()
-
 
 def write_img_file(pbar, img_item):
     req = urllib.request.Request(img_item[1])
@@ -31,12 +29,6 @@ def write_img_file(pbar, img_item):
     except:
         pbar.update()
         return
-
-    # Problem encountered : data downloaded not adequate
-    # image with RIFF format, url returns html page <not available in your country>
-    # not_adequate = ["RIFF", "html"]
-    # if any(s in str(img_data) for s in not_adequate):
-    #   return
 
     try:
         img = Image.open(img_data)
@@ -75,7 +67,6 @@ def get_images(driver, folder_path, num):
     tasks = [gevent.spawn(write_img_file, pbar, img_item)
              for img_item in img_list]
     gevent.joinall(tasks)
-    print("DONE\n")
 
 
 def scroll(driver, num_scrolls):
@@ -95,7 +86,7 @@ def scroll(driver, num_scrolls):
             print("    show more results failed -> exception: " + str(e))
 
 
-def search(search_txt, num, idx):
+def search(search_txt, num):
 
     if not os.path.exists(download_img_path):
         os.makedirs(download_img_path)
@@ -114,7 +105,7 @@ def search(search_txt, num, idx):
 
     # Google images -> 400 images before "show more results"
     # start scrolling to load enough images
-    num_scrolls = int((num + idx) / 400 + 1)
+    num_scrolls = int(num / 400 + 1)
     scroll(driver, num_scrolls)
     get_images(driver, folder_path, num)
 
@@ -122,6 +113,7 @@ def search(search_txt, num, idx):
 for i in range(len(search_words)):
     w = search_words[i]
     print('search for ' + str(num_images[i]) + ' images of ' + w)
-    search(w, num_images[i], start_idx[i])
+    search(w, num_images[i])
 
 print('DONE')
+sys.exit()
